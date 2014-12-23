@@ -16,30 +16,39 @@ import org.newdawn.slick.font.effects.ColorEffect;
 import org.newdawn.slick.geom.Circle;
 import org.newdawn.slick.geom.Line;
 import org.newdawn.slick.geom.Rectangle;
-import org.newdawn.slick.geom.Shape;
 
 public class Maze {
-	
+
+	// CONSTANTS
 	private final int FRAMES_PER_SECOND = 60;
 	private final int MENU_SIZE = 4;
-	private final int SETTINGS_SIZE = 2;
-	
-	private static State state = State.MENU;	
-	private int menuIndex = 0;	
-	private int settingsIndex = 0;
+	private final int SETTINGS_SIZE = 3;
+
+	// GRAPHICS VARIABLES
 	private UnicodeFont menuFont;
 	private UnicodeFont settingsFont;
 	private UnicodeFont gameFont;
-	private boolean running = true;
-	Graphics graphics = new Graphics();
+	private Graphics graphics = new Graphics();
 
-	int mazeSize = 25;
+	// SETTINGS VARIABLES
+	private int settingsIndex = 0;
+	private int mazeSize = 25;
+
+	// MENU VARIABLES
+	private static State state = State.MENU;	
+	private int menuIndex = 0;	
+	private boolean discoveryMode = false;
+
+	// MAZE VARIABLES
 	MazeGenerator mazeGenerator = new MazeGenerator(mazeSize);
 	MazeCell[][] maze;
 	float mazeLength = 400;
 	float cellLength = mazeLength / mazeSize;
-	
 	Player player1 = new Player(0,0);
+	boolean[][] discoveredCells = new boolean[mazeSize][mazeSize];
+
+
+	private boolean running = true;	
 
 	public void run() {
 		try {
@@ -52,10 +61,10 @@ public class Maze {
 			e.printStackTrace();
 			System.exit(1);
 		}
-		
+
 		Display.destroy();
 	}
-	
+
 	private void init() throws LWJGLException, SlickException {
 		Display.setDisplayMode(new DisplayMode(800,600));
 		Display.create();
@@ -70,12 +79,12 @@ public class Maze {
 		settingsFont.getEffects().add(c);
 		settingsFont.addAsciiGlyphs();
 		settingsFont.loadGlyphs();
-		
+
 		gameFont = new UnicodeFont(new java.awt.Font("Verdana", Font.PLAIN, 12));
 		gameFont.getEffects().add(c);
 		gameFont.addAsciiGlyphs();
 		gameFont.loadGlyphs();
-		
+
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
 		GL11.glOrtho(0, Display.getWidth(), Display.getHeight(), 0, 1, -1);
@@ -91,42 +100,42 @@ public class Maze {
 			Display.sync(FRAMES_PER_SECOND);
 		}
 	}
-	
-	
+
+
 	private void render() {
 		switch (state) {
 		case MENU:
 			renderMenu();			
 			break;
-		
+
 		case SINGLE:
 			renderSingle();
 			break;
-			
+
 		case MULTI:
 			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 			Line l = new Line(100, 100, 200, 200);
 			graphics.draw(l);
-			
+
 			break;
-				
+
 		case SETTINGS:
 			renderSettings();
 			break;
 		}
 	}
-	
+
 	private void renderMenu() {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 		Color primary = Color.red;
 		Color secondary = Color.gray;
-		
+
 		GL11.glPushMatrix();
 		menuFont.drawString(100, 350, "SINGLE PLAYER", secondary);
 		menuFont.drawString(100, 400, "MULTIPLAYER", secondary);
 		menuFont.drawString(100, 450, "SETTINGS", secondary);
 		menuFont.drawString(100, 500, "EXIT", secondary);
-		
+
 		switch (menuIndex) {
 		case 0:
 			menuFont.drawString(100, 350, "SINGLE PLAYER", primary);
@@ -142,58 +151,68 @@ public class Maze {
 		}
 		GL11.glPopMatrix();
 	}
-	
+
 	private void renderSettings() {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 		Color primary = Color.magenta;
 		Color secondary = Color.gray;
-		
+
 		GL11.glPushMatrix();
 		settingsFont.drawString(100, 100, "Maze Size:", secondary);
 		settingsFont.drawString(400, 100, String.valueOf(mazeSize), secondary);
-		settingsFont.drawString(100, 150, "EXIT", secondary);
-		
+		settingsFont.drawString(100, 150, "Discovery Mode:", secondary);
+		settingsFont.drawString(400, 150, discoveryMode ? "ON" : "OFF", secondary);
+		settingsFont.drawString(100, 200, "EXIT");
+
 		switch (settingsIndex) {
 		case 0:
 			settingsFont.drawString(100, 100, "Maze Size:", primary);
 			break;
 		case 1:
-			settingsFont.drawString(100, 150, "EXIT", primary);
+			settingsFont.drawString(100, 150, "Discovery Mode:", primary);
+			break;
+		case 2:
+			settingsFont.drawString(100, 200, "EXIT", primary);
 			break;
 		}
 		GL11.glPopMatrix();
 	}
-	
+
 	private void renderSingle() {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-		
+
 		gameFont.drawString(20, 100, "P1 Total Moves: " + player1.totalMoves);
-	    
-	    Rectangle r = new Rectangle(200, 100, 400, 400);
-	    graphics.setColor(Color.white);
-	    graphics.fill(r);
-	    
-	    for (int row=0; row<mazeSize; row++) {
-	    	for (int col=0; col<mazeSize; col++) {
-	    		MazeCell cell = maze[row][col];
-	    		if (!cell.topOpen) {
-	    			Line l = new Line(200+col*cellLength, 100+row*cellLength, 200+(col+1)*cellLength, 100+row*cellLength);
-	    			graphics.setColor(Color.black);
-	    			graphics.draw(l);
-	    		}
-	    		if (!cell.leftOpen) {
-	    			Line l = new Line(200+col*cellLength, 100+row*cellLength, 200+col*cellLength, 100+(row+1)*cellLength);
-	    			graphics.setColor(Color.black);
-	    			graphics.draw(l);
-	    		}
-	    	}
-	    }
-	    
-	    Circle c = new Circle(200+cellLength/2 + player1.col*cellLength, 100+cellLength/2 + player1.row*cellLength, cellLength/2 - cellLength/4);
-	    graphics.setColor(Color.blue);
-	    graphics.fill(c);
+
+		Rectangle r = new Rectangle(200, 100, mazeLength, mazeLength);
+		graphics.setColor(Color.white);
+		graphics.fill(r);
+
+		for (int row=0; row<mazeSize; row++) {
+			for (int col=0; col<mazeSize; col++) {
+				MazeCell cell = maze[row][col];
+				if (!cell.topOpen) {
+					Line l = new Line(200+col*cellLength, 100+row*cellLength, 200+(col+1)*cellLength, 100+row*cellLength);
+					graphics.setColor(Color.black);
+					graphics.draw(l);
+				}
+				if (!cell.leftOpen) {
+					Line l = new Line(200+col*cellLength, 100+row*cellLength, 200+col*cellLength, 100+(row+1)*cellLength);
+					graphics.setColor(Color.black);
+					graphics.draw(l);
+				}
+				if (discoveryMode && !discoveredCells[row][col]) {
+					r = new Rectangle(200+col*cellLength, 100+row*cellLength, cellLength+1, cellLength+1);
+					graphics.setColor(Color.black);
+					graphics.fill(r);
+				}
+			}
+		}
+
+		Circle c = new Circle(200+cellLength/2 + player1.col*cellLength, 100+cellLength/2 + player1.row*cellLength, cellLength/2 - cellLength/4);
+		graphics.setColor(Color.blue);
+		graphics.fill(c);
 	}
-	
+
 	private void processInput() {
 		while (Keyboard.next()) {
 			switch (state) {
@@ -211,6 +230,10 @@ public class Maze {
 							state = State.SINGLE;
 							maze = mazeGenerator.generate();
 							player1.reset(0, 0);
+							discoveredCells = new boolean[mazeSize][mazeSize];
+							discoveredCells[0][0] = true;
+							if (maze[1][0].topOpen) discoveredCells[1][0] = true;
+							if (maze[0][1].leftOpen) discoveredCells[0][1] = true;
 							break;
 						case 1:
 							state = State.MULTI;
@@ -227,7 +250,7 @@ public class Maze {
 					}
 				}
 				break;
-			
+
 			case SINGLE:
 				if (Keyboard.getEventKeyState()) {
 					if (Keyboard.getEventKey() == Keyboard.KEY_ESCAPE) {
@@ -236,30 +259,40 @@ public class Maze {
 					if (Keyboard.getEventKey() == Keyboard.KEY_UP || Keyboard.getEventKey() == Keyboard.KEY_W) {
 						if (maze[player1.row][player1.col].topOpen) {
 							player1.moveUp();
+							checkDiscovery(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_DOWN || Keyboard.getEventKey() == Keyboard.KEY_S) {
 						if (player1.row+1 < mazeSize && maze[player1.row+1][player1.col].topOpen) {
 							player1.moveDown();
+							checkDiscovery(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_LEFT || Keyboard.getEventKey() == Keyboard.KEY_A) {
 						if (maze[player1.row][player1.col].leftOpen) {
 							player1.moveLeft();
+							checkDiscovery(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_RIGHT || Keyboard.getEventKey() == Keyboard.KEY_D) {
 						if (player1.col+1 < mazeSize && maze[player1.row][player1.col+1].leftOpen) {
 							player1.moveRight();
+							checkDiscovery(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_R) {
 						maze = mazeGenerator.generate();
 						player1.reset(0, 0);
+						if (discoveryMode) {
+							discoveredCells = new boolean[mazeSize][mazeSize];
+							discoveredCells[0][0] = true;
+							if (maze[1][0].topOpen) discoveredCells[1][0] = true;
+							if (maze[0][1].leftOpen) discoveredCells[0][1] = true;
+						}
 					}
 				}
 				break;
-				
+
 			case MULTI:
 				if (Keyboard.getEventKeyState()) {
 					if (Keyboard.getEventKey() == Keyboard.KEY_ESCAPE) {
@@ -267,7 +300,7 @@ public class Maze {
 					}
 				}
 				break;
-						
+
 			case SETTINGS:
 				if (Keyboard.getEventKeyState()) {
 					if (Keyboard.getEventKey() == Keyboard.KEY_UP) {
@@ -286,7 +319,7 @@ public class Maze {
 							}
 							break;
 						case 1:
-							state = State.MENU;
+							discoveryMode = !discoveryMode;
 							break;
 						}
 					}
@@ -300,7 +333,7 @@ public class Maze {
 							}
 							break;
 						case 1:
-							state = State.MENU;
+							discoveryMode = !discoveryMode;
 							break;
 						}
 					}
@@ -313,6 +346,28 @@ public class Maze {
 		}		
 	}
 
+	public void checkDiscovery(Player p) {
+		// Check if player1 can see on any of the adjacent sides
+		int row = p.row;
+		int col = p.col;
+		
+		if (maze[row][col].topOpen && row-1 >= 0) {
+			discoveredCells[row-1][col] = true;
+		}
+		
+		if (maze[row][col].leftOpen && col-1 >= 0) {
+			discoveredCells[row][col-1] = true;
+		}
+		
+		if (row+1 < mazeSize && maze[row+1][col].topOpen) {
+			discoveredCells[row+1][col] = true;
+		}
+		
+		if (col+1 < mazeSize && maze[row][col+1].leftOpen) {
+			discoveredCells[row][col+1] = true;
+		}
+	}
+	
 	public static void main(String[] args) {
 		new Maze().run();
 	}
