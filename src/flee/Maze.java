@@ -22,7 +22,10 @@ public class Maze {
 	// CONSTANTS
 	private final int FRAMES_PER_SECOND = 60;
 	private final int MENU_SIZE = 4;
-	private final int SETTINGS_SIZE = 3;
+	private final int SETTINGS_SIZE = 4;
+	private final int MIN_MAZE_SIZE = 5;
+	private final int MAX_MAZE_SIZE = 50;
+	private final int MAX_BLIND_RADIUS = 3;
 
 	// GRAPHICS VARIABLES
 	private UnicodeFont menuFont;
@@ -33,13 +36,14 @@ public class Maze {
 	// SETTINGS VARIABLES
 	private int settingsIndex = 0;
 	private int mazeSize = 25;
+	int blindRadius = 2;
 
 	// MENU VARIABLES
-	private static State state = State.MENU;	
-	private int menuIndex = 0;	
-	private boolean discoveryMode = false;
+	private State state = State.MENU;	
+	private int menuIndex = 0;
 
 	// MAZE VARIABLES
+	private GameMode gameMode = GameMode.STANDARD;
 	MazeGenerator mazeGenerator = new MazeGenerator(mazeSize);
 	MazeCell[][] maze;
 	float mazeLength = 400;
@@ -155,24 +159,31 @@ public class Maze {
 	private void renderSettings() {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 		Color primary = Color.magenta;
-		Color secondary = Color.gray;
+		Color secondary = Color.white;
 
 		GL11.glPushMatrix();
 		settingsFont.drawString(100, 100, "Maze Size:", secondary);
 		settingsFont.drawString(400, 100, String.valueOf(mazeSize), secondary);
-		settingsFont.drawString(100, 150, "Discovery Mode:", secondary);
-		settingsFont.drawString(400, 150, discoveryMode ? "ON" : "OFF", secondary);
-		settingsFont.drawString(100, 200, "EXIT");
+		settingsFont.drawString(100, 150, "Game Mode:", secondary);
+		if (gameMode == GameMode.STANDARD) settingsFont.drawString(400, 150, "Standard", secondary);
+		else if (gameMode == GameMode.DISCOVERY) settingsFont.drawString(400, 150, "Discovery", secondary);
+		else if (gameMode == GameMode.BLIND) settingsFont.drawString(400, 150, "Blind", secondary);
+		settingsFont.drawString(100, 200, "Blind radius:", secondary);
+		settingsFont.drawString(400, 200, String.valueOf(blindRadius), secondary);
+		settingsFont.drawString(100, 250, "EXIT", secondary);
 
 		switch (settingsIndex) {
 		case 0:
 			settingsFont.drawString(100, 100, "Maze Size:", primary);
 			break;
 		case 1:
-			settingsFont.drawString(100, 150, "Discovery Mode:", primary);
+			settingsFont.drawString(100, 150, "Game Mode:", primary);
 			break;
 		case 2:
-			settingsFont.drawString(100, 200, "EXIT", primary);
+			settingsFont.drawString(100, 200, "Blind radius:", primary);
+			break;
+		case 3:
+			settingsFont.drawString(100, 250, "EXIT", primary);
 			break;
 		}
 		GL11.glPopMatrix();
@@ -182,10 +193,19 @@ public class Maze {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 
 		gameFont.drawString(20, 100, "P1 Total Moves: " + player1.totalMoves);
-
+		
 		Rectangle r = new Rectangle(200, 100, mazeLength, mazeLength);
-		graphics.setColor(Color.white);
-		graphics.fill(r);
+
+		if (gameMode != GameMode.BLIND) {
+			graphics.setColor(Color.white);
+			graphics.fill(r);
+		} else {
+			Circle c = new Circle(200+cellLength/2 + player1.col*cellLength, 100+cellLength/2 + player1.row*cellLength, blindRadius*cellLength);
+			graphics.setColor(Color.white);
+			graphics.fill(c);
+			graphics.setColor(Color.black);
+			graphics.draw(r);
+		}
 
 		for (int row=0; row<mazeSize; row++) {
 			for (int col=0; col<mazeSize; col++) {
@@ -200,7 +220,7 @@ public class Maze {
 					graphics.setColor(Color.black);
 					graphics.draw(l);
 				}
-				if (discoveryMode && !discoveredCells[row][col]) {
+				if (gameMode == GameMode.DISCOVERY && !discoveredCells[row][col]) {
 					r = new Rectangle(200+col*cellLength, 100+row*cellLength, cellLength+1, cellLength+1);
 					graphics.setColor(Color.black);
 					graphics.fill(r);
@@ -283,7 +303,7 @@ public class Maze {
 					if (Keyboard.getEventKey() == Keyboard.KEY_R) {
 						maze = mazeGenerator.generate();
 						player1.reset(0, 0);
-						if (discoveryMode) {
+						if (gameMode == GameMode.DISCOVERY) {
 							discoveredCells = new boolean[mazeSize][mazeSize];
 							discoveredCells[0][0] = true;
 							if (maze[1][0].topOpen) discoveredCells[1][0] = true;
@@ -312,28 +332,33 @@ public class Maze {
 					if (Keyboard.getEventKey() == Keyboard.KEY_LEFT) {
 						switch (settingsIndex) {
 						case 0: // Maze Size
-							if (mazeSize > 5) {
+							if (mazeSize-5 >= MIN_MAZE_SIZE) {
 								mazeSize-=5;
 								mazeGenerator = new MazeGenerator(mazeSize);
 								cellLength = mazeLength / mazeSize;
 							}
 							break;
 						case 1:
-							discoveryMode = !discoveryMode;
+							gameMode = gameMode.prev();
 							break;
+						case 2:
+							if (blindRadius > 1) blindRadius--;
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_RIGHT) {
 						switch (settingsIndex) {
 						case 0: // Maze Size
-							if (mazeSize < 50) {
+							if (mazeSize+5 <= MAX_MAZE_SIZE) {
 								mazeSize+=5;
 								mazeGenerator = new MazeGenerator(mazeSize);
 								cellLength = mazeLength / mazeSize;
 							}
 							break;
 						case 1:
-							discoveryMode = !discoveryMode;
+							gameMode = gameMode.next();
+							break;
+						case 2:
+							if (blindRadius < MAX_BLIND_RADIUS) blindRadius++;
 							break;
 						}
 					}
@@ -350,24 +375,24 @@ public class Maze {
 		// Check if player1 can see on any of the adjacent sides
 		int row = p.row;
 		int col = p.col;
-		
+
 		if (maze[row][col].topOpen && row-1 >= 0) {
 			discoveredCells[row-1][col] = true;
 		}
-		
+
 		if (maze[row][col].leftOpen && col-1 >= 0) {
 			discoveredCells[row][col-1] = true;
 		}
-		
+
 		if (row+1 < mazeSize && maze[row+1][col].topOpen) {
 			discoveredCells[row+1][col] = true;
 		}
-		
+
 		if (col+1 < mazeSize && maze[row][col+1].leftOpen) {
 			discoveredCells[row][col+1] = true;
 		}
 	}
-	
+
 	public static void main(String[] args) {
 		new Maze().run();
 	}
