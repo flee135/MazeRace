@@ -20,9 +20,9 @@ import org.newdawn.slick.geom.Rectangle;
 public class Maze {
 
 	// CONSTANTS
+	private final int WINDOW_WIDTH = 800;
+	private final int WINDOW_HEIGHT = 600;
 	private final int FRAMES_PER_SECOND = 60;
-	private final int MENU_SIZE = 4;
-	private final int SETTINGS_SIZE = 4;
 	private final int MIN_MAZE_SIZE = 5;
 	private final int MAX_MAZE_SIZE = 50;
 	private final int MAX_BLIND_RADIUS = 3;
@@ -34,13 +34,13 @@ public class Maze {
 	private Graphics graphics = new Graphics();
 
 	// SETTINGS VARIABLES
-	private int settingsIndex = 0;
+	private SettingsOption settingsOption = SettingsOption.MAZE_SIZE;
 	private int mazeSize = 25;
 	int blindRadius = 2;
 
 	// MENU VARIABLES
-	private State state = State.MENU;	
-	private int menuIndex = 0;
+	private State state = State.MENU;
+	private MenuOption menuOption = MenuOption.SINGLE;
 
 	// MAZE VARIABLES
 	private GameMode gameMode = GameMode.STANDARD;
@@ -69,8 +69,9 @@ public class Maze {
 		Display.destroy();
 	}
 
+	@SuppressWarnings("unchecked")
 	private void init() throws LWJGLException, SlickException {
-		Display.setDisplayMode(new DisplayMode(800,600));
+		Display.setDisplayMode(new DisplayMode(WINDOW_WIDTH, WINDOW_HEIGHT));
 		Display.create();
 
 		ColorEffect c = new ColorEffect(java.awt.Color.white);
@@ -140,17 +141,17 @@ public class Maze {
 		menuFont.drawString(100, 450, "SETTINGS", secondary);
 		menuFont.drawString(100, 500, "EXIT", secondary);
 
-		switch (menuIndex) {
-		case 0:
+		switch (menuOption) {
+		case SINGLE:
 			menuFont.drawString(100, 350, "SINGLE PLAYER", primary);
 			break;
-		case 1:
+		case MULTI:
 			menuFont.drawString(100, 400, "MULTIPLAYER", primary);
 			break;
-		case 2:
+		case SETTINGS:
 			menuFont.drawString(100, 450, "SETTINGS", primary);
 			break;
-		case 3:
+		case EXIT:
 			menuFont.drawString(100, 500, "EXIT", primary);
 		}
 		GL11.glPopMatrix();
@@ -172,17 +173,17 @@ public class Maze {
 		settingsFont.drawString(400, 200, String.valueOf(blindRadius), secondary);
 		settingsFont.drawString(100, 250, "EXIT", secondary);
 
-		switch (settingsIndex) {
-		case 0:
+		switch (settingsOption) {
+		case MAZE_SIZE:
 			settingsFont.drawString(100, 100, "Maze Size:", primary);
 			break;
-		case 1:
+		case GAME_MODE:
 			settingsFont.drawString(100, 150, "Game Mode:", primary);
 			break;
-		case 2:
+		case BLIND_RADIUS:
 			settingsFont.drawString(100, 200, "Blind radius:", primary);
 			break;
-		case 3:
+		case EXIT:
 			settingsFont.drawString(100, 250, "EXIT", primary);
 			break;
 		}
@@ -239,29 +240,28 @@ public class Maze {
 			case MENU:
 				if (Keyboard.getEventKeyState()) {
 					if (Keyboard.getEventKey() == Keyboard.KEY_UP) {
-						menuIndex = (menuIndex + MENU_SIZE - 1) % MENU_SIZE;
+						menuOption = menuOption.prev();
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_DOWN) {
-						menuIndex = (menuIndex + 1) % MENU_SIZE;
+						menuOption = menuOption.next();
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_RETURN) {
-						switch (menuIndex) {
-						case 0:
+						switch (menuOption) {
+						case SINGLE:
 							state = State.SINGLE;
 							maze = mazeGenerator.generate();
 							player1.reset(0, 0);
 							discoveredCells = new boolean[mazeSize][mazeSize];
 							discoveredCells[0][0] = true;
-							if (maze[1][0].topOpen) discoveredCells[1][0] = true;
-							if (maze[0][1].leftOpen) discoveredCells[0][1] = true;
+							checkDiscovery(player1);
 							break;
-						case 1:
+						case MULTI:
 							state = State.MULTI;
 							break;
-						case 2:
+						case SETTINGS:
 							state = State.SETTINGS;
 							break;
-						case 3:
+						case EXIT:
 							running = false;
 						}
 					}
@@ -324,41 +324,46 @@ public class Maze {
 			case SETTINGS:
 				if (Keyboard.getEventKeyState()) {
 					if (Keyboard.getEventKey() == Keyboard.KEY_UP) {
-						settingsIndex = (settingsIndex + SETTINGS_SIZE - 1) % SETTINGS_SIZE;
+						settingsOption = settingsOption.prev();
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_DOWN) {
-						settingsIndex = (settingsIndex + 1) % SETTINGS_SIZE;
+						settingsOption = settingsOption.next();
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_LEFT) {
-						switch (settingsIndex) {
-						case 0: // Maze Size
+						switch (settingsOption) {
+						case MAZE_SIZE: // Maze Size
 							if (mazeSize-5 >= MIN_MAZE_SIZE) {
 								mazeSize-=5;
 								mazeGenerator = new MazeGenerator(mazeSize);
 								cellLength = mazeLength / mazeSize;
 							}
 							break;
-						case 1:
+						case GAME_MODE:
 							gameMode = gameMode.prev();
 							break;
-						case 2:
+						case BLIND_RADIUS:
 							if (blindRadius > 1) blindRadius--;
+							break;
+						default:
+							break;
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_RIGHT) {
-						switch (settingsIndex) {
-						case 0: // Maze Size
+						switch (settingsOption) {
+						case MAZE_SIZE: // Maze Size
 							if (mazeSize+5 <= MAX_MAZE_SIZE) {
 								mazeSize+=5;
 								mazeGenerator = new MazeGenerator(mazeSize);
 								cellLength = mazeLength / mazeSize;
 							}
 							break;
-						case 1:
+						case GAME_MODE:
 							gameMode = gameMode.next();
 							break;
-						case 2:
+						case BLIND_RADIUS:
 							if (blindRadius < MAX_BLIND_RADIUS) blindRadius++;
+							break;
+						default:
 							break;
 						}
 					}
