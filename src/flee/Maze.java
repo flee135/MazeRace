@@ -37,26 +37,26 @@ public class Maze {
 	// SETTINGS VARIABLES
 	private SettingsOption settingsOption = SettingsOption.MAZE_SIZE;
 	private int mazeSize = 25;
-	int blindRadius = 2;
+	private GameMode gameMode = GameMode.STANDARD;
+	private int blindRadius = 2;
 
 	// MENU VARIABLES
 	private State state = State.MENU;
 	private MenuOption menuOption = MenuOption.SINGLE;
 
 	// MAZE VARIABLES
-	private GameMode gameMode = GameMode.STANDARD;
-	MazeGenerator mazeGenerator = new MazeGenerator(mazeSize);
-	MazeCell[][] maze;
-	float mazeLength = 400;
-	float cellLength = mazeLength / mazeSize;
-	Player player1 = new Player(0,0);
-	boolean[][] discoveredCells = new boolean[mazeSize][mazeSize];
-	Instant startTime;
+	private MazeGenerator mazeGenerator = new MazeGenerator(mazeSize);
+	private MazeCell[][] maze;
+	private float mazeLength = 400;
+	private float cellLength = mazeLength / mazeSize;
+	private Player player1 = new Player(0,0);
+	private boolean[][] discoveredCells = new boolean[mazeSize][mazeSize];
+	private Instant startTime;
 
 
 	private boolean running = true;	
 
-	public void run() {
+	private void run() {
 		try {
 			init();
 			loop();
@@ -385,7 +385,7 @@ public class Maze {
 		}		
 	}
 
-	public void checkDiscovery(Player p) {
+	private void checkDiscovery(Player p) {
 		// Check if player1 can see on any of the adjacent sides
 		int row = p.row;
 		int col = p.col;
