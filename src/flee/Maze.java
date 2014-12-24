@@ -3,6 +3,7 @@ package flee;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.Font;
+import java.time.Instant;
 
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Keyboard;
@@ -50,6 +51,7 @@ public class Maze {
 	float cellLength = mazeLength / mazeSize;
 	Player player1 = new Player(0,0);
 	boolean[][] discoveredCells = new boolean[mazeSize][mazeSize];
+	Instant startTime;
 
 
 	private boolean running = true;	
@@ -192,11 +194,9 @@ public class Maze {
 
 	private void renderSingle() {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-
-		gameFont.drawString(20, 100, "P1 Total Moves: " + player1.totalMoves);
 		
+		// Draw container (either square or circle)
 		Rectangle r = new Rectangle(200, 100, mazeLength, mazeLength);
-
 		if (gameMode != GameMode.BLIND) {
 			graphics.setColor(Color.white);
 			graphics.fill(r);
@@ -207,7 +207,13 @@ public class Maze {
 			graphics.setColor(Color.black);
 			graphics.draw(r);
 		}
+		
+		// Draw statistics
+		long timeDiff = Instant.now().toEpochMilli() - startTime.toEpochMilli();
+		gameFont.drawString(20, 100, String.format("Elapsed Time: %02d:%02d.%03d", timeDiff/60000, (timeDiff/1000)%60, timeDiff%1000) );
+		gameFont.drawString(20, 150, "P1 Total Moves: " + player1.totalMoves);
 
+		// Draw maze walls.
 		for (int row=0; row<mazeSize; row++) {
 			for (int col=0; col<mazeSize; col++) {
 				MazeCell cell = maze[row][col];
@@ -229,6 +235,7 @@ public class Maze {
 			}
 		}
 
+		// Draw player1
 		Circle c = new Circle(200+cellLength/2 + player1.col*cellLength, 100+cellLength/2 + player1.row*cellLength, cellLength/2 - cellLength/4);
 		graphics.setColor(Color.blue);
 		graphics.fill(c);
@@ -251,6 +258,7 @@ public class Maze {
 							state = State.SINGLE;
 							maze = mazeGenerator.generate();
 							player1.reset(0, 0);
+							startTime = Instant.now();
 							discoveredCells = new boolean[mazeSize][mazeSize];
 							discoveredCells[0][0] = true;
 							checkDiscovery(player1);
@@ -303,6 +311,7 @@ public class Maze {
 					if (Keyboard.getEventKey() == Keyboard.KEY_R) {
 						maze = mazeGenerator.generate();
 						player1.reset(0, 0);
+						startTime = Instant.now();
 						if (gameMode == GameMode.DISCOVERY) {
 							discoveredCells = new boolean[mazeSize][mazeSize];
 							discoveredCells[0][0] = true;
