@@ -4,6 +4,8 @@ public enum SettingsOption {
 	MAZE_SIZE,
 	GAME_MODE,
 	BLIND_RADIUS,
+	CHANGING_MAZE,
+	CHANGING_MAZE_MOVES,
 	EXIT;
 	
 	public SettingsOption next() {

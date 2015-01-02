@@ -39,6 +39,8 @@ public class Maze {
 	private int mazeSize = 25;
 	private GameMode gameMode = GameMode.STANDARD;
 	private int blindRadius = 2;
+	private boolean changingMaze = false;
+	private int changingMazeMoves = 5;
 
 	// MENU VARIABLES
 	private State state = State.MENU;
@@ -173,7 +175,11 @@ public class Maze {
 		else if (gameMode == GameMode.BLIND) settingsFont.drawString(400, 150, "Blind", secondary);
 		settingsFont.drawString(100, 200, "Blind radius:", secondary);
 		settingsFont.drawString(400, 200, String.valueOf(blindRadius), secondary);
-		settingsFont.drawString(100, 250, "EXIT", secondary);
+		settingsFont.drawString(100, 250, "Changing Maze:", secondary);
+		settingsFont.drawString(400, 250, changingMaze ? "ON" : "OFF", secondary);
+		settingsFont.drawString(100, 300, "Moves Before Maze Change:", secondary);
+		settingsFont.drawString(400, 300, String.valueOf(changingMazeMoves), secondary);
+		settingsFont.drawString(100, 350, "EXIT", secondary);
 
 		switch (settingsOption) {
 		case MAZE_SIZE:
@@ -185,8 +191,14 @@ public class Maze {
 		case BLIND_RADIUS:
 			settingsFont.drawString(100, 200, "Blind radius:", primary);
 			break;
+		case CHANGING_MAZE:
+			settingsFont.drawString(100, 250, "Changing Maze:", primary);
+			break;
+		case CHANGING_MAZE_MOVES:
+			settingsFont.drawString(100, 300, "Moves Before Maze Change:", primary);
+			break;
 		case EXIT:
-			settingsFont.drawString(100, 250, "EXIT", primary);
+			settingsFont.drawString(100, 350, "EXIT", primary);
 			break;
 		}
 		GL11.glPopMatrix();
@@ -194,7 +206,7 @@ public class Maze {
 
 	private void renderSingle() {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-		
+
 		// Draw container (either square or circle)
 		Rectangle r = new Rectangle(200, 100, mazeLength, mazeLength);
 		if (gameMode != GameMode.BLIND) {
@@ -207,7 +219,7 @@ public class Maze {
 			graphics.setColor(Color.black);
 			graphics.draw(r);
 		}
-		
+
 		// Draw statistics
 		long timeDiff = Instant.now().toEpochMilli() - startTime.toEpochMilli();
 		gameFont.drawString(20, 100, String.format("Elapsed Time: %02d:%02d.%03d", timeDiff/60000, (timeDiff/1000)%60, timeDiff%1000) );
@@ -288,24 +300,28 @@ public class Maze {
 						if (maze[player1.row][player1.col].topOpen) {
 							player1.moveUp();
 							checkDiscovery(player1);
+							checkNewMaze(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_DOWN || Keyboard.getEventKey() == Keyboard.KEY_S) {
 						if (player1.row+1 < mazeSize && maze[player1.row+1][player1.col].topOpen) {
 							player1.moveDown();
 							checkDiscovery(player1);
+							checkNewMaze(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_LEFT || Keyboard.getEventKey() == Keyboard.KEY_A) {
 						if (maze[player1.row][player1.col].leftOpen) {
 							player1.moveLeft();
 							checkDiscovery(player1);
+							checkNewMaze(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_RIGHT || Keyboard.getEventKey() == Keyboard.KEY_D) {
 						if (player1.col+1 < mazeSize && maze[player1.row][player1.col+1].leftOpen) {
 							player1.moveRight();
 							checkDiscovery(player1);
+							checkNewMaze(player1);
 						}
 					}
 					if (Keyboard.getEventKey() == Keyboard.KEY_R) {
@@ -353,6 +369,12 @@ public class Maze {
 						case BLIND_RADIUS:
 							if (blindRadius > 1) blindRadius--;
 							break;
+						case CHANGING_MAZE:
+							changingMaze = !changingMaze;
+							break;
+						case CHANGING_MAZE_MOVES:
+							if (changingMazeMoves > 1) changingMazeMoves -= 1;
+							break;
 						default:
 							break;
 						}
@@ -372,6 +394,11 @@ public class Maze {
 						case BLIND_RADIUS:
 							if (blindRadius < MAX_BLIND_RADIUS) blindRadius++;
 							break;
+						case CHANGING_MAZE:
+							changingMaze = !changingMaze;
+							break;
+						case CHANGING_MAZE_MOVES:
+							changingMazeMoves += 1;
 						default:
 							break;
 						}
@@ -404,6 +431,18 @@ public class Maze {
 
 		if (col+1 < mazeSize && maze[row][col+1].leftOpen) {
 			discoveredCells[row][col+1] = true;
+		}
+	}
+
+	private void checkNewMaze(Player p) {
+		if (changingMaze && p.totalMoves % changingMazeMoves == 0) {
+			maze = mazeGenerator.generate();
+			if (gameMode == GameMode.DISCOVERY) {
+				discoveredCells = new boolean[mazeSize][mazeSize];
+				discoveredCells[0][0] = true;
+				if (maze[1][0].topOpen) discoveredCells[1][0] = true;
+				if (maze[0][1].leftOpen) discoveredCells[0][1] = true;
+			}
 		}
 	}
 
