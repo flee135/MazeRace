@@ -4,6 +4,7 @@ import org.lwjgl.opengl.GL11;
 
 import java.awt.Font;
 import java.time.Instant;
+import java.util.LinkedList;
 
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Keyboard;
@@ -54,6 +55,7 @@ public class Maze {
 	private Player player1 = new Player(0,0);
 	private boolean[][] discoveredCells = new boolean[mazeSize][mazeSize];
 	private Instant startTime;
+	private boolean hintRequested = false;
 
 
 	private boolean running = true;	
@@ -212,10 +214,16 @@ public class Maze {
 		if (gameMode != GameMode.BLIND) {
 			graphics.setColor(Color.white);
 			graphics.fill(r);
+			if (hintRequested) {
+				drawPath(player1.row, player1.col, mazeSize-1, mazeSize-1);
+			}
 		} else {
 			Circle c = new Circle(200+cellLength/2 + player1.col*cellLength, 100+cellLength/2 + player1.row*cellLength, blindRadius*cellLength);
 			graphics.setColor(Color.white);
 			graphics.fill(c);
+			if (hintRequested) {
+				drawPath(player1.row, player1.col, mazeSize-1, mazeSize-1);
+			}
 			graphics.setColor(Color.black);
 			graphics.draw(r);
 		}
@@ -252,6 +260,37 @@ public class Maze {
 		graphics.setColor(Color.blue);
 		graphics.fill(c);
 	}
+	
+	private void drawPath(int startRow, int startCol, int endRow, int endCol) {
+		int currRow = startRow;
+		int currCol = startCol;
+		graphics.setColor(Color.green);
+		LinkedList<Direction> soln = MazeSolver.solve(maze, startRow, startCol, endRow, endCol);
+		for (Direction d : soln) {
+			Line l;
+			switch (d) {
+			case UP:
+				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+currCol*cellLength, 100+cellLength/2+(currRow-1)*cellLength);
+				currRow--;
+				break;
+			case LEFT:
+				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+(currCol-1)*cellLength, 100+cellLength/2+currRow*cellLength);
+				currCol--;
+				break;
+			case DOWN:
+				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+currCol*cellLength, 100+cellLength/2+(currRow+1)*cellLength);
+				currRow++;
+				break;
+			case RIGHT:
+				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+(currCol+1)*cellLength, 100+cellLength/2+currRow*cellLength);
+				currCol++;
+				break;
+			default:
+				l = null;	
+			}
+			graphics.draw(l);
+		}
+	}
 
 	private void processInput() {
 		while (Keyboard.next()) {
@@ -274,6 +313,7 @@ public class Maze {
 							discoveredCells = new boolean[mazeSize][mazeSize];
 							discoveredCells[0][0] = true;
 							checkDiscovery(player1);
+							hintRequested = false;
 							break;
 						case MULTI:
 							state = State.MULTI;
@@ -334,6 +374,9 @@ public class Maze {
 							if (maze[1][0].topOpen) discoveredCells[1][0] = true;
 							if (maze[0][1].leftOpen) discoveredCells[0][1] = true;
 						}
+					}
+					if (Keyboard.getEventKey() == Keyboard.KEY_H) {
+						hintRequested = !hintRequested;
 					}
 				}
 				break;
