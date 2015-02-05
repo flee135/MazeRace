@@ -22,8 +22,10 @@ import org.newdawn.slick.geom.Rectangle;
 public class Maze {
 
 	// CONSTANTS
-	private final int WINDOW_WIDTH = 800;
+	private final int WINDOW_WIDTH = 1200;
 	private final int WINDOW_HEIGHT = 600;
+	private final int SINGLE_MAZE_X = 400;
+	private final int SINGLE_MAZE_Y = 100;
 	private final int FRAMES_PER_SECOND = 60;
 	private final int MIN_MAZE_SIZE = 5;
 	private final int MAX_MAZE_SIZE = 50;
@@ -210,7 +212,7 @@ public class Maze {
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 
 		// Draw container (either square or circle)
-		Rectangle r = new Rectangle(200, 100, mazeLength, mazeLength);
+		Rectangle r = new Rectangle(SINGLE_MAZE_X, SINGLE_MAZE_Y, mazeLength, mazeLength);
 		if (gameMode != GameMode.BLIND) {
 			graphics.setColor(Color.white);
 			graphics.fill(r);
@@ -218,7 +220,8 @@ public class Maze {
 				drawPath(player1.row, player1.col, mazeSize-1, mazeSize-1);
 			}
 		} else {
-			Circle c = new Circle(200+cellLength/2 + player1.col*cellLength, 100+cellLength/2 + player1.row*cellLength, blindRadius*cellLength);
+			Circle c = new Circle(SINGLE_MAZE_X+cellLength/2 + player1.col*cellLength, 
+					SINGLE_MAZE_Y+cellLength/2 + player1.row*cellLength, blindRadius*cellLength);
 			graphics.setColor(Color.white);
 			graphics.fill(c);
 			if (hintRequested) {
@@ -230,25 +233,27 @@ public class Maze {
 
 		// Draw statistics
 		long timeDiff = Instant.now().toEpochMilli() - startTime.toEpochMilli();
-		gameFont.drawString(20, 100, String.format("Elapsed Time: %02d:%02d.%03d", timeDiff/60000, (timeDiff/1000)%60, timeDiff%1000) );
-		gameFont.drawString(20, 150, "P1 Total Moves: " + player1.totalMoves);
+		gameFont.drawString(220, 100, String.format("Elapsed Time: %02d:%02d.%03d", timeDiff/60000, (timeDiff/1000)%60, timeDiff%1000) );
+		gameFont.drawString(220, 150, "P1 Total Moves: " + player1.totalMoves);
 
 		// Draw maze walls.
 		for (int row=0; row<mazeSize; row++) {
 			for (int col=0; col<mazeSize; col++) {
 				MazeCell cell = maze[row][col];
 				if (!cell.topOpen) {
-					Line l = new Line(200+col*cellLength, 100+row*cellLength, 200+(col+1)*cellLength, 100+row*cellLength);
+					Line l = new Line(SINGLE_MAZE_X+col*cellLength, SINGLE_MAZE_Y+row*cellLength, 
+							SINGLE_MAZE_X+(col+1)*cellLength, SINGLE_MAZE_Y+row*cellLength);
 					graphics.setColor(Color.black);
 					graphics.draw(l);
 				}
 				if (!cell.leftOpen) {
-					Line l = new Line(200+col*cellLength, 100+row*cellLength, 200+col*cellLength, 100+(row+1)*cellLength);
+					Line l = new Line(SINGLE_MAZE_X+col*cellLength, SINGLE_MAZE_Y+row*cellLength, 
+							SINGLE_MAZE_X+col*cellLength, SINGLE_MAZE_Y+(row+1)*cellLength);
 					graphics.setColor(Color.black);
 					graphics.draw(l);
 				}
 				if (gameMode == GameMode.DISCOVERY && !discoveredCells[row][col]) {
-					r = new Rectangle(200+col*cellLength, 100+row*cellLength, cellLength+1, cellLength+1);
+					r = new Rectangle(SINGLE_MAZE_X+col*cellLength, SINGLE_MAZE_Y+row*cellLength, cellLength+1, cellLength+1);
 					graphics.setColor(Color.black);
 					graphics.fill(r);
 				}
@@ -256,7 +261,8 @@ public class Maze {
 		}
 
 		// Draw player1
-		Circle c = new Circle(200+cellLength/2 + player1.col*cellLength, 100+cellLength/2 + player1.row*cellLength, cellLength/2 - cellLength/4);
+		Circle c = new Circle(SINGLE_MAZE_X+cellLength/2 + player1.col*cellLength, SINGLE_MAZE_Y+cellLength/2 + player1.row*cellLength, 
+				cellLength/2 - cellLength/4);
 		graphics.setColor(Color.blue);
 		graphics.fill(c);
 	}
@@ -270,19 +276,23 @@ public class Maze {
 			Line l;
 			switch (d) {
 			case UP:
-				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+currCol*cellLength, 100+cellLength/2+(currRow-1)*cellLength);
+				l = new Line(SINGLE_MAZE_X+cellLength/2+currCol*cellLength, SINGLE_MAZE_Y+cellLength/2+currRow*cellLength, 
+						SINGLE_MAZE_X+cellLength/2+currCol*cellLength, SINGLE_MAZE_Y+cellLength/2+(currRow-1)*cellLength);
 				currRow--;
 				break;
 			case LEFT:
-				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+(currCol-1)*cellLength, 100+cellLength/2+currRow*cellLength);
+				l = new Line(SINGLE_MAZE_X+cellLength/2+currCol*cellLength, SINGLE_MAZE_Y+cellLength/2+currRow*cellLength, 
+						SINGLE_MAZE_X+cellLength/2+(currCol-1)*cellLength, SINGLE_MAZE_Y+cellLength/2+currRow*cellLength);
 				currCol--;
 				break;
 			case DOWN:
-				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+currCol*cellLength, 100+cellLength/2+(currRow+1)*cellLength);
+				l = new Line(SINGLE_MAZE_X+cellLength/2+currCol*cellLength, SINGLE_MAZE_Y+cellLength/2+currRow*cellLength, 
+						SINGLE_MAZE_X+cellLength/2+currCol*cellLength, SINGLE_MAZE_Y+cellLength/2+(currRow+1)*cellLength);
 				currRow++;
 				break;
 			case RIGHT:
-				l = new Line(200+cellLength/2+currCol*cellLength, 100+cellLength/2+currRow*cellLength, 200+cellLength/2+(currCol+1)*cellLength, 100+cellLength/2+currRow*cellLength);
+				l = new Line(SINGLE_MAZE_X+cellLength/2+currCol*cellLength, SINGLE_MAZE_Y+cellLength/2+currRow*cellLength, 
+						SINGLE_MAZE_X+cellLength/2+(currCol+1)*cellLength, SINGLE_MAZE_Y+cellLength/2+currRow*cellLength);
 				currCol++;
 				break;
 			default:
